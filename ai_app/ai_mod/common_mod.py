@@ -23,18 +23,7 @@ main_title = {
     'Agent': 'Agent'
 }
 
-
-def get_llm_provider() -> list:
-    provider_list = []
-    provider_list.append('ollama')
-    provider_list.append('openai')
-    provider_list.append('anthropic')
-    provider_list.append('deepseek')
-    provider_list.append('tokenrouter')
-    return provider_list
-
-
-def get_llm_model() -> list:
+def get_ollama_models() -> list:
     model_list = []
     ret = subprocess.run(
         ["ollama", "list"],
@@ -53,6 +42,20 @@ def get_llm_model() -> list:
             model_list.append(line.split()[0])
     return model_list
 
+provider_models = {}
+provider_models['ollama'] = get_ollama_models()
+provider_models['tokenrouter'] = ['z-ai/glm-5.3-free']
+provider_models['google'] = ['gemini-3.6-flash']
+provider_models['nvidia'] = ['moonshotai/kimi-k3','deepseek-ai/deepseek-v4.1-flash','z-ai/glm-5.3','meta/muse-glimmer-30b']
+
+def get_llm_providers() -> list:
+    providersList = []
+    for p in provider_models.keys():
+        providersList.append(p)
+    return providersList
+
+def get_llm_models(provider) -> list:
+    return provider_models[provider]
 
 class AsyncMCPBridge:
     def __init__(self):

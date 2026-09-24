@@ -39,6 +39,7 @@ def get_mcp_bridge():
 def main():
     st.set_page_config(page_title="AI Demos", layout="wide")
     st.title("AI Demos")
+
     if common_mod.options == False:
         button_title = 'To be confirmed'
     else:
@@ -57,29 +58,21 @@ def main():
         st.session_state.selected_tools = common_mod.tools_selected
         common_mod.options = False
 
-    provider = st.sidebar.selectbox("Select a Provider", common_mod.get_llm_provider(
+    provider = st.sidebar.selectbox("Select a Provider", common_mod.get_llm_providers(
     ), key="provider_select", on_change=selection_changed)
-    if provider == 'tokenrouter':
-        model_list = []
-        model_list = ['z-ai/glm-5.3-free']
-    elif provider == 'ollama':
-        model_list = []
-        model_list = common_mod.get_llm_model()
-    else:
-        st.sidebar.write("The provider is not supported for now")
-        model_list = []
 
-    ollama_model = st.sidebar.selectbox(
+    model_list = common_mod.get_llm_models(provider)
+    llm_model = st.sidebar.selectbox(
         "Select a Model", model_list, key="model_select", on_change=selection_changed)
 
-    if ollama_model in common_mod.get_llm_model():
+    if llm_model in common_mod.get_ollama_models():
         response = subprocess.Popen(
-            ["ollama", "show", ollama_model], stdout=subprocess.PIPE, text=True)
-        lines = f'{'-' * 20}\n Modle: {ollama_model}<br>'
+            ["ollama", "show", llm_model], stdout=subprocess.PIPE, text=True)
+        lines = f'{'-' * 20}\n Modle: {llm_model}<br>'
         for line in response.stdout:
             lines += line
 
-    if ollama_model == 'llama3.1:8b':
+    if llm_model == 'llama3.1:8b':
         model_think = None
     else:
         model_think = True
@@ -108,7 +101,7 @@ def main():
     if service == 'Harness':
         # st.write("Harness service is under development and not available yet.")
         user_prompt = st.text_input("Enter your query: ")
-        answer = harness_mod.harness_agent(ollama_model, user_prompt)
+        answer = harness_mod.harness_agent(llm_model, user_prompt)
         st.code(answer, language='python')
     # debug = st.sidebar.radio("debug",["No","Yes"],index=0,key="debug_radio_agent", on_change=selection_changed)
     debug_checked = st.sidebar.checkbox("Debug", on_change=selection_changed)
@@ -126,7 +119,7 @@ def main():
     else:
         st.sidebar.write("--- Confirmed")
 
-    if ollama_model in common_mod.get_llm_model():
+    if llm_model in common_mod.get_ollama_models():
         st.sidebar.write(lines, unsafe_allow_html=True)
 
     # user_prompt = st.text_input("Enter your query: ")
@@ -138,24 +131,31 @@ def main():
             if user_prompt:
                 if chat_method == 'ChatClient':
                     start = time.time()
-                    st.write(chat_mod.client_chat(ollama_model,
+                    if provider == 'google':
+                        st.write(chat_mod.gemini_chat(llm_model,user_prompt,debug))
+                    elif provider == 'nvidia':
+                        st.write(chat_mod.nvidia_chat(llm_model,user_prompt,debug))
+                    else:
+                        st.write(chat_mod.client_chat(llm_model,
                              user_prompt, debug, model_think))
                     end = time.time()
                     st.write(f'Time cost: {end - start:.2f} seconds')
                 elif chat_method == 'aiohttp':
                     start = time.time()
-                    st.write(chat_mod.aiohttp_chat(ollama_model,
+                    st.write(chat_mod.aiohttp_chat(llm_model,
                              user_prompt, debug, common_mod.ollama_URL))
                     end = time.time()
                     st.write(f'Time cost: {end - start:.2f} seconds')
                 elif chat_method == 'requests':
                     start = time.time()
                     if provider == 'ollama':
-                        st.write(chat_mod.requests_chat(ollama_model,
+                        st.write(chat_mod.requests_chat(llm_model,
                                                         user_prompt, debug, common_mod.ollama_URL))
                     elif provider == 'tokenrouter':
                         st.write(tokenrouter_mod.send_routed_request(
                             user_prompt, mode="balanced"))
+                    elif provider == 'nvidia':
+                        st.write(chat_mod.nvidia_request_chat(llm_model,user_prompt, debug))
                     end = time.time()
                     st.write(f'Time cost: {end - start:.2f} seconds')
                 else:
@@ -167,15 +167,15 @@ def main():
                 user_prompt = st.text_input(
                     "Enter your query: ", value=user_input)
                 if user_prompt:
-                    st.write(chain_mod.start_agent_chain(ollama_model,
+                    st.write(chain_mod.start_agent_chain(llm_model,
                              user_prompt, debug, common_mod.tools_selected))
             elif sub_service == 'Graph':
                 user_prompt = st.text_input("Enter your query: ")
                 if user_prompt:
                     st.write(chain_mod.start_graph(
-                        ollama_model, user_prompt, debug))
+                        llm_model, user_prompt, debug))
             elif sub_service == 'ReAct':
-                react_mod.llm_model = ollama_model
+                react_mod.llm_model = llm_model
                 react_mod.debug = debug
                 user_input = f'I want to visit Lithuania. I am interested to see some good places there.'
                 user_prompt = st.text_input(
@@ -187,9 +187,9 @@ def main():
                 user_prompt = st.text_input(
                     "Enter your query: ", value=user_input)
                 if user_prompt:
-                    # response = asyncio.run(mcp_client_mod.ask_mcp(user_prompt, ollama_model, debug))     # user_prompt = What is our company's vacation policy?
+                    # response = asyncio.run(mcp_client_mod.ask_mcp(user_prompt, llm_model, debug))     # user_prompt = What is our company's vacation policy?
                     response, debug_info = bridge.run(
-                        ask_mcp(user_prompt, ollama_model, debug))
+                        ask_mcp(user_prompt, llm_model, debug))
                     st.write('=' * 50)
                     st.write(response)
                     st.write('-' * 50)

@@ -10,7 +10,7 @@ options = False
 outputdir = '/Users/gongya/Programming/mac_python/proj_ai/ai_app/data/output/'
 inputdir = '/Users/gongya/Programming/mac_python/proj_ai/ai_app/data/input/'
 
-agent_types_list = ['Chain', 'Graph', 'ReAct', 'MCP']
+agent_types_list = ['Chain', 'Graph', 'ReAct', 'MCP','RAG']
 service_types_list = ['Chat', 'Agent', 'Harness']
 chat_methods_list = ['ChatClient', 'aiohttp', 'requests']
 

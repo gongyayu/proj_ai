@@ -1,3 +1,4 @@
+from multiprocessing.util import debug
 import os
 import sys
 import time
@@ -10,7 +11,7 @@ from langchain_ollama import ChatOllama
 from ollama import chat
 import streamlit as st
 import asyncio
-from ai_mod import common_mod, chat_mod, mcp_client_mod, react_mod, tokenrouter_mod
+from ai_mod import common_mod, chat_mod, mcp_client_mod, react_mod, tokenrouter_mod,rag_mod
 from ai_mod.common_mod import AsyncMCPBridge
 from ai_mod.mcp_client_mod import ask_mcp
 from ai_mod import harness_mod
@@ -162,40 +163,57 @@ def main():
                     st.write(f'Unknown chat method')
         elif service == 'Agent':
             if sub_service == 'Chain':
-                user_input = f'Please help me to correct a local python script name test.py and write the corrected one to a file'
-                # gemma4:latest is tested against this prompt
-                user_prompt = st.text_input(
-                    "Enter your query: ", value=user_input)
-                if user_prompt:
-                    st.write(chain_mod.start_agent_chain(llm_model,
-                             user_prompt, debug, common_mod.tools_selected))
+                if provider != 'ollama':
+                    st.error("Chain service is only available for Ollama provider.")
+                else:
+                    user_input = f'Please help me to correct a local python script name test.py and write the corrected one to a file'
+                    # gemma4:latest is tested against this prompt
+                    user_prompt = st.text_input(
+                        "Enter your query: ", value=user_input)
+                    if user_prompt:
+                        st.write(chain_mod.start_agent_chain(llm_model,
+                                user_prompt, debug, common_mod.tools_selected))
             elif sub_service == 'Graph':
                 user_prompt = st.text_input("Enter your query: ")
                 if user_prompt:
                     st.write(chain_mod.start_graph(
                         llm_model, user_prompt, debug))
             elif sub_service == 'ReAct':
-                react_mod.llm_model = llm_model
-                react_mod.debug = debug
-                user_input = f'I want to visit Lithuania. I am interested to see some good places there.'
-                user_prompt = st.text_input(
-                    "Enter your query: ", value=user_input)
-                if user_prompt:
-                    react_mod.query(user_prompt)
+                if provider != 'ollama':
+                    st.error("ReAct service is only available for Ollama provider.")
+                else:
+                    react_mod.llm_model = llm_model
+                    react_mod.debug = debug
+                    user_input = f'I want to visit Lithuania. I am interested to see some good places there.'
+                    user_prompt = st.text_input(
+                        "Enter your query: ", value=user_input)
+                    if user_prompt:
+                        react_mod.query(user_prompt)
             elif sub_service == 'MCP':
-                user_input = f"What is our company's vacation policy?"
-                user_prompt = st.text_input(
-                    "Enter your query: ", value=user_input)
-                if user_prompt:
-                    # response = asyncio.run(mcp_client_mod.ask_mcp(user_prompt, llm_model, debug))     # user_prompt = What is our company's vacation policy?
-                    response, debug_info = bridge.run(
-                        ask_mcp(user_prompt, llm_model, debug))
-                    st.write('=' * 50)
-                    st.write(response)
-                    st.write('-' * 50)
-                    for each in debug_info:
-                        st.write(each)
-
-
+                if provider != 'ollama':
+                    st.error("MCP service is only available for Ollama provider.")
+                else:
+                    user_input = f"What is our company's vacation policy?"
+                    user_prompt = st.text_input(
+                        "Enter your query: ", value=user_input)
+                    if user_prompt:
+                        # response = asyncio.run(mcp_client_mod.ask_mcp(user_prompt, llm_model, debug))     # user_prompt = What is our company's vacation policy?
+                        response, debug_info = bridge.run(
+                            ask_mcp(user_prompt, llm_model, debug))
+                        st.write('=' * 50)
+                        st.write(response)
+                        st.write('-' * 50)
+                        for each in debug_info:
+                            st.write(each)
+            elif sub_service == 'RAG':
+                if provider == 'ollama' or provider == 'google':
+                    user_input = f"What is our company's vacation policy?"
+                    user_prompt = st.text_input(
+                        "Enter your query: ", value=user_input)
+                    if user_prompt:
+                        st.write(rag_mod.classic_rag(llm_model, user_prompt, debug))
+                else:
+                    st.error("RAG service is only available for Ollama or Google provider now.")
+                
 if __name__ == "__main__":
     main()
